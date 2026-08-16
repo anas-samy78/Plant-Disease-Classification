@@ -2,8 +2,9 @@ from google import genai
 from PIL import Image
 import streamlit as st
 
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-gemini_model = genai.GenerativeModel("gemini-3.5-flash-lite")
+client = genai.Client(
+    api_key=st.secrets["GEMINI_API_KEY"]
+)
 
 
 def get_plant_analysis(image, species_name, detected_disease):
@@ -41,14 +42,21 @@ Keep the tone professional but easy to understand for a non-expert gardener.
 Avoid unnecessary repetition. Be concise but complete.
 """
 
-    response = gemini_model.generate_content([prompt, image])
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[prompt, image]
+    )
+
     return response.text
+
 
 if __name__ == "__main__":
     img = Image.open("plant.jpg")
+
     result = get_plant_analysis(
         image=img,
         species_name="Malus domestica",
         detected_disease="Apple Scab"
     )
+
     print(result)
