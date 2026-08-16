@@ -7,3 +7,4 @@ Pillow
 transformers
 huggingface_hub
 google-genai
+base64
