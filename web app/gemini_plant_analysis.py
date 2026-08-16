@@ -1,5 +1,6 @@
 import google.generativeai as genai
 from PIL import Image
+import streamlit as st
 
 genai.configure(api_key=st.secrets["AQ.Ab8RN6ICjA79ZmlbLMbGNIaIk_kIhVcXFVkQu5DKoc2SKpMpBw"])
 gemini_model = genai.GenerativeModel("gemini-3.5-flash-lite")
