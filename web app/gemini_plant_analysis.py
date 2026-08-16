@@ -1,6 +1,7 @@
 from google import genai
 from PIL import Image
 import streamlit as st
+import base64
 
 client = genai.Client(
     api_key=st.secrets["GEMINI_API_KEY"]
@@ -10,53 +11,54 @@ client = genai.Client(
 def get_plant_analysis(image, species_name, detected_disease):
 
     prompt = f"""
-You are a professional botanist and plant care expert. Analyze the provided
-plant image and give a structured, professional response.
+You are a professional botanist and plant care expert.
 
-Context from our detection models:
-- Identified species: {species_name}
-- Detected condition: {detected_disease}
+Identified species: {species_name}
+Detected condition: {detected_disease}
 
-Structure your response EXACTLY in this format, using clear section headers:
+Analyze the provided plant image.
+
+Give your response using exactly these sections:
 
 **Plant Overview**
-A brief 2-3 sentence description of this species.
+Brief description.
 
 **Health Assessment**
-State clearly whether the plant appears healthy or shows signs of disease,
-based on the visual evidence in the image.
+Explain whether the plant appears healthy or shows signs of disease.
 
 **Diagnosis**
-If diseased, explain the disease in simple terms. If healthy, state that
-no significant issues were detected.
+Explain the detected disease in simple terms.
 
 **Treatment**
-Practical, actionable treatment steps if the plant is diseased. If healthy,
-write "No treatment needed."
+Give practical treatment steps.
 
 **Prevention & Care**
-3-4 concise tips for protecting this plant type from future issues and
-general care recommendations.
+Give 3-4 concise prevention and care tips.
 
-Keep the tone professional but easy to understand for a non-expert gardener.
-Avoid unnecessary repetition. Be concise but complete.
+Be professional, concise, and easy for a non-expert gardener to understand.
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[prompt, image]
+    # Convert PIL image to bytes
+    import io
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG")
+    image_bytes = buffer.getvalue()
+
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    interaction = client.interactions.create(
+        model="gemini-3.6-flash",
+        input=[
+            {
+                "type": "text",
+                "text": prompt
+            },
+            {
+                "type": "image",
+                "data": image_b64,
+                "mime_type": "image/jpeg"
+            }
+        ]
     )
 
-    return response.text
-
-
-if __name__ == "__main__":
-    img = Image.open("plant.jpg")
-
-    result = get_plant_analysis(
-        image=img,
-        species_name="Malus domestica",
-        detected_disease="Apple Scab"
-    )
-
-    print(result)
+    return interaction.output_text
