@@ -324,16 +324,43 @@ div[data-baseweb="notification"]{
 """, unsafe_allow_html=True)
 
 st.markdown("---")
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 image_path = os.path.join(BASE_DIR, "plant2.png")
-st.image(image_path, caption="Plant Disease Classification")
+
+st.image(
+    image_path,
+    caption="AI-Powered Plant Identification & Disease Detection",
+    use_container_width=True
+)
 
 st.markdown("")
+
+st.markdown(
+    '<div class="title-container">'
+    '<h1>🌱 PlantID — Identify & Understand Your Plant</h1>'
+    '</div>',
+    unsafe_allow_html=True
+)
+
 st.markdown("---")
-st.markdown('<div class="title-container"><h1> PlantID — Identify any plant instantly </h1></div>', unsafe_allow_html=True)
-st.markdown("---")
-st.title("Upload a photo and discover the species, along with common diseases to watch for.")
-st.markdown("PlantID uses a deep learning model trained on over 1.4 million images to recognize more than 7,800 plant species. Simply upload a photo, and get an instant identification along with helpful care and disease information.")
+
+st.title("Upload a photo and discover what your plant might be.")
+
+st.markdown(
+    """
+    PlantID uses **AI and computer vision** to analyze a single plant image,
+    helping you identify the plant species and recognize potential disease signs.
+    
+    Get fast, accessible information about your plant's identity, possible
+    health issues, and useful care guidance — all from one photo.
+    """
+)
 
 st.markdown("")
-st.page_link("pages/2_Predict.py", label="Start Identifying →", icon=None)
+
+st.page_link(
+    "pages/2_Predict.py",
+    label="🔍 Start Identifying →",
+    icon=None
+)
