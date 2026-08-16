@@ -6,10 +6,6 @@ gemini_model = genai.GenerativeModel("gemini-3.5-flash-lite")
 
 
 def get_plant_analysis(image, species_name, detected_disease):
-    """
-    بتاخد الصورة + اسم النبات (من DINOv2) + المرض المكتشف (من الموديل المحلي)
-    وترجع تحليل نصي احترافي ومنظم
-    """
 
     prompt = f"""
 You are a professional botanist and plant care expert. Analyze the provided
