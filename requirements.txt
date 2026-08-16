@@ -1,0 +1,9 @@
+streamlit
+torch
+torchvision
+timm
+pandas
+Pillow
+transformers
+huggingface_hub
+google-generativeai
