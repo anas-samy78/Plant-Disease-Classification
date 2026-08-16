@@ -1,13 +1,7 @@
-import sys
-import subprocess
-
-subprocess.check_call([sys.executable, "-m", "pip", "install", "google-generativeai"])
-
 import google.generativeai as genai
 from PIL import Image
 
-genai.configure(api_key="AQ.Ab8RN6ICjA79ZmlbLMbGNIaIk_kIhVcXFVkQu5DKoc2SKpMpBw")
-
+genai.configure(api_key=st.secrets["AQ.Ab8RN6ICjA79ZmlbLMbGNIaIk_kIhVcXFVkQu5DKoc2SKpMpBw"])
 gemini_model = genai.GenerativeModel("gemini-3.5-flash-lite")
 
 
