@@ -438,7 +438,7 @@ if uploaded_file is not None:
         with st.spinner("Running deeper analysis..."):
             analysis = get_plant_analysis(
                 image=img,
-                # لو النتيجة ضعيفة منبعتهاش لـ Gemini عشان ما يتأثرش بيها
+                
                 species_name=results[0][0] if species_is_confident else "Unknown",
                 detected_disease=predicted_disease if disease_is_confident else "Unknown"
             )
