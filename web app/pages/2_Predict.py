@@ -386,75 +386,96 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
  
+
+SPECIES_THRESHOLD = 60.0 
+DISEASE_THRESHOLD = 50.0 
+
 if uploaded_file is not None:
-    col1, col2 = st.columns([1, 1.5])
- 
-    with col1:
-        st.image(uploaded_file, caption="Your uploaded plant", use_container_width=True)
- 
     img = Image.open(uploaded_file)
 
-    with st.spinner("Checking for diseases..."):
-        disease_input = disease_transform(img.convert("RGB")).unsqueeze(0)
- 
-        with torch.no_grad():
-            disease_outputs = disease_model(pixel_values=disease_input)
-            predicted_disease_id = disease_outputs.logits.argmax(dim=-1).item()
- 
-        predicted_disease = disease_model.config.id2label[predicted_disease_id]
- 
-    st.markdown("### Disease check")
-    st.warning(f"Detected: {predicted_disease}")
-    st.caption("Disease detection currently supports Apple, Tomato, Corn, and other common crops. Not a substitute for expert diagnosis.")
- 
-    with st.spinner("Analyzing your photo..."):
-        img_transformed = transforms(img).unsqueeze(0).to(device)
- 
+    st.image(uploaded_file, caption="Your uploaded plant", width=350)
+
+    gemini_box = st.container()
+    species_box = st.container()
+    disease_box = st.container()
+
+
+    with st.spinner("Identifying species..."):
+        img_transformed = transforms(img.convert("RGB")).unsqueeze(0).to(device)
+
         with torch.no_grad():
             output = model(img_transformed)
             top5_probabilities, top5_class_indices = torch.topk(output.softmax(dim=1) * 100, k=5)
- 
+
         top5_probabilities = top5_probabilities.cpu().detach().numpy()[0]
         top5_class_indices = top5_class_indices.cpu().detach().numpy()[0]
- 
+
     results = []
     for proba, cid in zip(top5_probabilities, top5_class_indices):
         species_id = cid_to_spid[cid]
         species = spid_to_sp[species_id]
-        results.append((species, proba))
- 
-    with col2:
-        st.markdown('<div class="result-card">', unsafe_allow_html=True)
-        st.markdown('<h2>Top match</h2>', unsafe_allow_html=True)
-        st.markdown(f'<h1>{results[0][0]}</h1>', unsafe_allow_html=True)
-        st.markdown(f'<p class="subtitle">Confidence: {results[0][1]:.1f}%</p>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        results.append((species, float(proba)))
 
-    with st.spinner("Running deeper analysis..."):
-        analysis = get_plant_analysis(
-            image=img,
-            species_name=results[0][0],
-            detected_disease=predicted_disease
-        )
+    species_is_confident = results[0][1] >= SPECIES_THRESHOLD
 
-    st.markdown("### Detailed Analysis")
-    st.markdown(analysis)
- 
-    st.markdown("### Other possible matches")
-    for species, proba in results[1:]:
-        st.write(species)
-        st.progress(min(int(proba), 100))
+    
+    with st.spinner("Checking for diseases..."):
+        disease_input = disease_transform(img.convert("RGB")).unsqueeze(0)
 
+        with torch.no_grad():
+            disease_outputs = disease_model(pixel_values=disease_input)
+            disease_probs = disease_outputs.logits.softmax(dim=-1)[0] * 100
+            predicted_disease_id = disease_probs.argmax().item()
+            disease_confidence = disease_probs[predicted_disease_id].item()
+
+        predicted_disease = disease_model.config.id2label[predicted_disease_id]
+
+    disease_is_confident = disease_confidence >= DISEASE_THRESHOLD
+
+    
+    with gemini_box:
+        st.markdown("### Detailed Analysis")
+        with st.spinner("Running deeper analysis..."):
+            analysis = get_plant_analysis(
+                image=img,
+                # لو النتيجة ضعيفة منبعتهاش لـ Gemini عشان ما يتأثرش بيها
+                species_name=results[0][0] if species_is_confident else "Unknown",
+                detected_disease=predicted_disease if disease_is_confident else "Unknown"
+            )
+        st.markdown(analysis)
+
+    
+    if species_is_confident:
+        with species_box:
+            st.markdown("### Species identification")
+            st.markdown('<div class="result-card">', unsafe_allow_html=True)
+            st.markdown('<h2>Top match</h2>', unsafe_allow_html=True)
+            st.markdown(f'<h1>{results[0][0]}</h1>', unsafe_allow_html=True)
+            st.markdown(f'<p class="subtitle">Confidence: {results[0][1]:.1f}%</p>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown("### Other possible matches")
+            for species, proba in results[1:]:
+                st.write(species)
+                st.progress(min(int(proba), 100))
+
+    
+    if disease_is_confident:
+        with disease_box:
+            st.markdown("### Disease check")
+            st.warning(f"Detected: {predicted_disease} ({disease_confidence:.1f}%)")
+            st.caption("Disease detection currently supports Apple, Tomato, Corn, and other common crops. Not a substitute for expert diagnosis.")
+
+   
     if "history" not in st.session_state:
         st.session_state["history"] = []
 
     st.session_state["history"].append({
         "image": uploaded_file,
-        "species": results[0][0],
-        "confidence": results[0][1],
-        "disease": predicted_disease
+        "species": results[0][0] if species_is_confident else None,
+        "confidence": results[0][1] if species_is_confident else None,
+        "disease": predicted_disease if disease_is_confident else None
     })
-    
+
 else:
     st.info("Upload a photo above to get started.")
-
