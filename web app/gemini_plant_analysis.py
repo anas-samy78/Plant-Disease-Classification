@@ -1,16 +1,19 @@
-from google import genai
-from PIL import Image
+import io
+
 import streamlit as st
-import base64
+from google import genai
+from google.genai import types
 
-client = genai.Client(
-    api_key=st.secrets["GEMINI_API_KEY"]
-)
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+
+MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+]
 
 
-def get_plant_analysis(image, species_name, detected_disease):
-
-    prompt = f"""
+def build_prompt(species_name, detected_disease):
+    return f"""
 You are an expert botanist and plant pathologist with extensive experience in
 horticulture and home gardening. You are assisting a non-expert gardener.
 
@@ -64,27 +67,32 @@ relevant to this plant.
   expert for severe or uncertain cases.
 """
 
-    # Convert PIL image to bytes
-    import io
+
+def get_plant_analysis(image, species_name, detected_disease):
+    prompt = build_prompt(species_name, detected_disease)
+
+    img = image.convert("RGB")
+    img.thumbnail((1024, 1024))
     buffer = io.BytesIO()
-    image.save(buffer, format="JPEG")
+    img.save(buffer, format="JPEG", quality=90)
     image_bytes = buffer.getvalue()
 
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+    contents = [
+        types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+        prompt,
+    ]
 
-    interaction = client.interactions.create(
-        model="gemini-3.6-flash",
-        input=[
-            {
-                "type": "text",
-                "text": prompt
-            },
-            {
-                "type": "image",
-                "data": image_b64,
-                "mime_type": "image/jpeg"
-            }
-        ]
-    )
+    last_error = None
+    for model_name in MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+            )
+            if response.text:
+                return response.text
+        except Exception as e:
+            last_error = e
+            print(f"[Gemini] model {model_name} failed: {e}")  # بيظهر في logs
 
-    return interaction.output_text
+    raise last_error if last_error else RuntimeError("Empty response from Gemini")
