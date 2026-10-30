@@ -471,11 +471,13 @@ if uploaded_file is not None:
         st.session_state["history"] = []
 
     st.session_state["history"].append({
-        "image": uploaded_file,
-        "species": results[0][0] if species_is_confident else None,
-        "confidence": results[0][1] if species_is_confident else None,
-        "disease": predicted_disease if disease_is_confident else None
-    })
-
+    "image": uploaded_file,
+    "species": results[0][0],
+    "confidence": results[0][1],
+    "species_confident": species_is_confident,
+    "disease": predicted_disease,
+    "disease_confidence": disease_confidence,
+    "disease_confident": disease_is_confident,
+        })
 else:
     st.info("Upload a photo above to get started.")
