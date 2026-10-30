@@ -7,10 +7,10 @@ from google.genai import types
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
+    "gemini-3.5-flash-lite",   
+    "gemini-3.6-flash",        
+    "gemini-2.5-flash",        
 ]
-
 
 def build_prompt(species_name, detected_disease):
     return f"""
@@ -82,7 +82,7 @@ def get_plant_analysis(image, species_name, detected_disease):
         prompt,
     ]
 
-    last_error = None
+    errors = []
     for model_name in MODELS:
         try:
             response = client.models.generate_content(
@@ -92,7 +92,7 @@ def get_plant_analysis(image, species_name, detected_disease):
             if response.text:
                 return response.text
         except Exception as e:
-            last_error = e
-            print(f"[Gemini] model {model_name} failed: {e}")  # بيظهر في logs
+            errors.append(f"{model_name}: {e}")
+            print(f"[Gemini] model {model_name} failed: {e}")
 
-    raise last_error if last_error else RuntimeError("Empty response from Gemini")
+    raise RuntimeError("All Gemini models failed:\n" + "\n".join(errors))
